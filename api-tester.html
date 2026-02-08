@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HPCL Lead Intelligence - API Test</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: white;
+            color: black;
+            padding: 20px;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        textarea,
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            font-size: 14px;
+            border: 2px solid black;
+            margin-bottom: 15px;
+            resize: vertical;
+        }
+
+        textarea {
+            height: 120px;
+        }
+
+        input[type="text"] {
+            height: 45px;
+        }
+
+        .btn-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 15px 30px;
+            font-size: 16px;
+            font-weight: bold;
+            background: black;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #333;
+        }
+
+        button:disabled {
+            background: #999;
+            cursor: not-allowed;
+        }
+
+        .btn-telegram {
+            background: #0088cc;
+        }
+
+        .btn-telegram:hover {
+            background: #006699;
+        }
+
+        .output-section {
+            margin-bottom: 20px;
+        }
+
+        .output-section h2 {
+            font-size: 16px;
+            margin-bottom: 8px;
+            padding: 10px;
+            background: #f0f0f0;
+            border: 1px solid black;
+            border-bottom: none;
+        }
+
+        .output-box {
+            width: 100%;
+            height: 300px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            border: 2px solid black;
+            overflow: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            background: #fafafa;
+        }
+
+        .loading {
+            color: #666;
+            font-style: italic;
+        }
+
+        .error {
+            color: red;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .action-buttons {
+            margin-top: 15px;
+            display: none;
+        }
+
+        .action-buttons.show {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .status-msg {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .setup-box {
+            background: #e7f3ff;
+            border: 2px solid #0088cc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+        }
+
+        .setup-box h3 {
+            margin-bottom: 10px;
+            color: #0088cc;
+        }
+
+        .setup-box ol {
+            margin-left: 20px;
+        }
+
+        .setup-box li {
+            margin-bottom: 8px;
+        }
+
+        .setup-box code {
+            background: #ddd;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>🛢️ HPCL Lead Intelligence - API Test</h1>
+
+    <!-- Telegram Setup Instructions -->
+    <div class="setup-box">
+        <h3>📨 Telegram Setup (One-time)</h3>
+        <ol>
+            <li>Open Telegram and search for your bot: <code>@YourBotName</code></li>
+            <li>Send <code>/start</code> to the bot</li>
+            <li>Get your Chat ID: Send any message to <code>@userinfobot</code> on Telegram</li>
+            <li>Enter your Chat ID below</li>
+        </ol>
+    </div>
+
+    <label for="chatId">Your Telegram Chat ID:</label>
+    <input type="text" id="chatId" placeholder="e.g., 123456789" value="">
+
+    <label for="articleText">Article Text:</label>
+    <textarea
+        id="articleText">Mahindra to invest Rs 15,000 crore in largest integrated auto, tractor plant in Maharashtra. The 1,500-acre facility in Nagpur will have annual capacity of 500,000 vehicles and 100,000 tractors.</textarea>
+
+    <div class="btn-row">
+        <button id="testBtn" onclick="testAPIs()">🧪 TEST API</button>
+    </div>
+
+    <div class="output-section">
+        <h2>📰 NewsData API Response</h2>
+        <div id="newsOutput" class="output-box">Click "TEST API" to see response...</div>
+    </div>
+
+    <div class="output-section">
+        <h2>🧠 Gemini 2.5 Flash Response</h2>
+        <div id="geminiOutput" class="output-box">Click "TEST API" to see response...</div>
+
+        <div id="actionButtons" class="action-buttons">
+            <button class="btn-telegram" onclick="sendTelegram()">📨 Send to Telegram</button>
+            <span id="sendStatus"></span>
+        </div>
+    </div>
+
+    <script>
+        const NEWSDATA_API_KEY = 'pub_13f5cf2d9390430996d3bb5edf76abf9';
+        const GEMINI_API_KEY = 'AIzaSyCrDXTEK6Ra1cLocD4A2OnzCTNlTwpEUj0';
+        const TELEGRAM_BOT_TOKEN = '8460311833:AAEEjm4PpEaUUs2hOQM3Bl_jBSUl4XO8bAE';
+
+        let currentLead = null;
+
+        // Load saved chat ID from localStorage
+        window.onload = function () {
+            const savedChatId = localStorage.getItem('telegramChatId');
+            if (savedChatId) {
+                document.getElementById('chatId').value = savedChatId;
+            }
+        };
+
+        async function testAPIs() {
+            const articleText = document.getElementById('articleText').value;
+            const newsOutput = document.getElementById('newsOutput');
+            const geminiOutput = document.getElementById('geminiOutput');
+            const testBtn = document.getElementById('testBtn');
+            const actionButtons = document.getElementById('actionButtons');
+
+            newsOutput.innerHTML = '<span class="loading">Loading NewsData API...</span>';
+            geminiOutput.innerHTML = '<span class="loading">Waiting...</span>';
+            actionButtons.classList.remove('show');
+            document.getElementById('sendStatus').innerHTML = '';
+            testBtn.disabled = true;
+            currentLead = null;
+
+            // Step 1: Call NewsData API
+            try {
+                const query = encodeURIComponent('(plant OR factory OR refinery) AND (fuel OR power OR bunker) NOT (stock OR lounge OR merger)');
+                const newsUrl = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_API_KEY}&q=${query}&country=in&language=en&category=business&domainurl=economictimes.indiatimes.com&removeduplicate=1&size=5`;
+                const newsResponse = await fetch(newsUrl);
+                const newsData = await newsResponse.json();
+                newsOutput.innerHTML = '<span class="success">✓ SUCCESS</span>\n\n' + JSON.stringify(newsData, null, 2);
+            } catch (error) {
+                newsOutput.innerHTML = '<span class="error">✗ ERROR</span>\n\n' + error.message;
+            }
+
+            // Step 2: Call Gemini 2.5 Flash API
+            geminiOutput.innerHTML = '<span class="loading">Loading Gemini 2.5 Flash...</span>';
+
+            try {
+                const prompt = `You are analyzing industrial news for HPCL fuel company.
+
+Extract this data from the article and return ONLY valid JSON (no markdown, no explanation):
+
+{
+  "company_name": "company name",
+  "industry": "industry type",
+  "location": "city, state",
+  "signals": ["equipment or facility signals"],
+  "recommended_products": [
+    {
+      "product": "HPCL product name",
+      "confidence": 85,
+      "reason": "why this product fits"
+    }
+  ],
+  "lead_score": 85,
+  "urgency": "High/Medium/Low"
+}
+
+HPCL Products: Furnace Oil, High Speed Diesel (HSD), Light Diesel Oil (LDO), Bitumen, Marine Bunker Fuels, Hexane
+
+ARTICLE TEXT:
+${articleText}`;
+
+                const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+                const requestBody = {
+                    contents: [{ parts: [{ text: prompt }] }]
+                };
+
+                const geminiResponse = await fetch(geminiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const geminiData = await geminiResponse.json();
+
+                if (geminiData.error) {
+                    geminiOutput.innerHTML = '<span class="error">✗ ERROR</span>\n\n' + JSON.stringify(geminiData.error, null, 2);
+                } else {
+                    let responseText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    let formattedOutput = '<span class="success">✓ SUCCESS</span>\n\n';
+
+                    try {
+                        const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+                        currentLead = JSON.parse(cleanedText);
+                        formattedOutput += 'EXTRACTED LEAD DATA:\n' + JSON.stringify(currentLead, null, 2);
+                        actionButtons.classList.add('show');
+                    } catch {
+                        formattedOutput += 'RAW RESPONSE:\n' + responseText;
+                    }
+
+                    geminiOutput.innerHTML = formattedOutput;
+                }
+            } catch (error) {
+                geminiOutput.innerHTML = '<span class="error">✗ ERROR</span>\n\n' + error.message;
+            }
+
+            testBtn.disabled = false;
+        }
+
+        function formatLeadMessage(lead) {
+            if (!lead) return 'No lead data available';
+
+            const products = (lead.recommended_products || [])
+                .map(p => `• ${p.product} (${p.confidence}%) - ${p.reason}`)
+                .join('\n');
+
+            const signals = (lead.signals || []).join(', ');
+
+            return `🚨 NEW INDUSTRIAL LEAD
+
+🏭 Company: ${lead.company_name || 'N/A'}
+📊 Sector: ${lead.industry || 'N/A'}
+📍 Location: ${lead.location || 'N/A'}
+
+📡 Signals: ${signals}
+
+🛢️ Recommended Products:
+${products}
+
+📈 Lead Score: ${lead.lead_score || 0}/100
+⚡ Urgency: ${lead.urgency || 'N/A'}
+
+━━━━━━━━━━━━━━━━
+🔥 HPCL Lead Intelligence`;
+        }
+
+        async function sendTelegram() {
+            if (!currentLead) {
+                showStatus('No lead data to send', 'error');
+                return;
+            }
+
+            const chatId = document.getElementById('chatId').value.trim();
+
+            if (!chatId) {
+                showStatus('Please enter your Telegram Chat ID above', 'error');
+                return;
+            }
+
+            // Save chat ID for future use
+            localStorage.setItem('telegramChatId', chatId);
+
+            showStatus('Sending...', '');
+
+            try {
+                const message = formatLeadMessage(currentLead);
+                const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        chat_id: chatId,
+                        text: message
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.ok) {
+                    showStatus('✅ Message sent to Telegram!', 'success');
+                } else {
+                    showStatus(`❌ Error: ${data.description}`, 'error');
+                }
+            } catch (error) {
+                showStatus(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const status = document.getElementById('sendStatus');
+            status.style.color = type === 'success' ? 'green' : type === 'error' ? 'red' : '#666';
+            status.textContent = message;
+        }
+    </script>
+
+</body>
+
+</html>
