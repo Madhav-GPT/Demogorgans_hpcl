@@ -1,5 +1,3 @@
-# Project Demo Video Drive Link:- https://drive.google.com/file/d/1RsLPViGEGo9AfLSfuoqeO13Q2zygnSN7/view?usp=sharing
-
 # HPCL Lead Intelligence Dashboard
 
 AI-powered B2B lead discovery platform using **100% local LLM inference** with Ollama.
